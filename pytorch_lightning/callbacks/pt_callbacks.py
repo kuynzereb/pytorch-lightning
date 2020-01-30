@@ -6,6 +6,7 @@ Callbacks supported by Lightning
 """
 
 import os
+from pathlib import Path
 import shutil
 import logging
 import warnings
@@ -176,6 +177,62 @@ class EarlyStopping(Callback):
     def on_train_end(self, logs=None):
         if self.stopped_epoch > 0 and self.verbose > 0:
             logging.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
+
+
+class SimpleModelCheckpoint(Callback):
+    def __init__(self, filepath, save_all=False, verbose=0, period=1, prefix=''):
+        super().__init__()
+        filepath = Path(filepath)
+        self.filepath = filepath
+        if filepath.is_dir() and len(list(filepath.iterdir())):
+            old_version = self._get_version(filepath)
+            warnings.warn(
+                f"Checkpoint directory {filepath} exists and is not empty. It will be renamed to"
+                f" {filepath}.old{old_version}"
+            )
+            shutil.copytree(filepath, filepath.parent / (filepath.name + f'.old{old_version}'))
+            shutil.rmtree(filepath)
+        filepath.mkdir(exist_ok=True, parents=True)
+
+        self.save_all = save_all
+        self.verbose = verbose
+        self.period = period
+        self.prefix = prefix + '_' if prefix else ''
+        self.time_since_last_check = 0
+        self.best = None
+
+    def _get_version(self, filepath):
+        old_paths = list(filepath.parent.glob(f'{filepath.name}.old*'))
+        old_versions = [int(p.suffix[4:]) for p in old_paths]
+
+        if len(old_versions):
+            return max(old_versions) + 1
+
+        return 0
+
+    def _del_model(self, filepath):
+        filepath = Path(filepath)
+        if filepath.exists():
+            filepath.unlink()
+
+    def _save_model(self, filepath):
+        # delegate the saving to the model
+        self.save_function(str(filepath))
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.time_since_last_check += 1
+        if self.time_since_last_check >= self.period:
+            self.time_since_last_check = 0
+            ckpt_path = self.filepath / f'{self.prefix}ckpt_epoch_{epoch}.ckpt'
+
+            if self.verbose > 0:
+                logging.info(f'Epoch {epoch:05d}: saving model to {ckpt_path}')
+
+            if not self.save_all:
+                for path in self.filepath.glob('*.ckpt'):
+                    self._del_model(path)
+
+            self._save_model(ckpt_path)
 
 
 class ModelCheckpoint(Callback):
