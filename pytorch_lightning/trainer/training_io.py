@@ -269,9 +269,10 @@ class TrainerIOMixin(ABC):
             filepath (str|pathlib.Path): The path to which the checkpoint will be saved.
                 This points to the file that the checkpoint will be stored in.
         """
-        tmp_path = str(filepath) + ".part"
-        torch.save(checkpoint, tmp_path)
-        os.replace(tmp_path, filepath)
+        torch.save(checkpoint, str(filepath))
+        # tmp_path = str(filepath) + ".part"
+        # torch.save(checkpoint, tmp_path)
+        # os.replace(tmp_path, filepath)
 
     def save_checkpoint(self, filepath):
         checkpoint = self.dump_checkpoint()
