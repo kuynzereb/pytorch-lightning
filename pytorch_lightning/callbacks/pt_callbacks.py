@@ -180,7 +180,27 @@ class EarlyStopping(Callback):
 
 
 class SimpleModelCheckpoint(Callback):
-    def __init__(self, filepath, save_all=False, verbose=0, period=1, prefix=''):
+    r"""
+
+    Save the model after every validation loop.
+
+    Args:
+        filepath (str): path to the directory where checkpoints will be saved.
+        save_all (bool): Whether to save only the last checkpoint or keep the checkpoints
+            from the each epoch. Default: ``False``.
+        verbose (bool): verbosity mode. Default: ``False``.
+        period (int): Interval (number of validation loops) between checkpoints. Default: ``1``.
+        prefix (str): Prefix for the checkpoint name. Default: ``None``.
+
+    Example::
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import SimpleModelCheckpoint
+
+        checkpoint_callback = SimpleModelCheckpoint(filepath='my_path')
+        Trainer(checkpoint_callback=checkpoint_callback)
+    """
+    def __init__(self, filepath, save_all=False, verbose=0, period=1, prefix=None):
         super().__init__()
         filepath = Path(filepath)
         self.filepath = filepath
